@@ -11,13 +11,16 @@ def main():
     # fetch dataset 
     iris = fetch_ucirepo(id=53) 
     
-    # data (as pandas dataframes) 
     # Grab only Setosa and Versicolour
     X = iris.data.features[:100]
     y = iris.data.targets [:100]
-
     # Set Setosa to 0 and Versicolor to 1
     y = y['class'].replace({'Iris-setosa': 0, 'Iris-versicolor': 1})
+
+    # Grab Versicolor and Virginica
+    # X = iris.data.features[-100:]
+    # y = iris.data.targets [-100:]
+    # y = y['class'].replace({'Iris-versicolor': 0, 'Iris-virginica': 1})
 
     X['base'] = [1 for x in range(len(X.index))]
 
@@ -46,10 +49,6 @@ def main():
             accuracy += 1
     print(f"Accuracy = {accuracy / len(Y_test_pred)}")
 
-    # metadata 
-    # print(iris.metadata) 
-    # variable information 
-    # print(iris.variables) 
 
 
 
