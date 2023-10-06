@@ -1,11 +1,13 @@
 from math import exp
 import math
+import os
 from ucimlrepo import fetch_ucirepo 
 import pandas as pd
 from sklearn.model_selection import train_test_split
 import numpy as np
 import random
 import matplotlib.pyplot as plt
+from sklearn import metrics
   
 
 def main():
@@ -15,44 +17,38 @@ def main():
     # Grab only Setosa and Versicolour
     X = iris.data.features[:100]
     y = iris.data.targets [:100]
-    # Set Setosa to 0 and Versicolor to 1
     y = y['class'].replace({'Iris-setosa': 0, 'Iris-versicolor': 1})
+    label_1, label_2 = 'Setosa', 'Versicolor'
 
     # Grab Versicolor and Virginica
     # X = iris.data.features[-100:]
     # y = iris.data.targets [-100:]
     # y = y['class'].replace({'Iris-versicolor': 0, 'Iris-virginica': 1})
+    # label_1, label_2 = 'Versicolor', 'Virginica'
 
-    X['base'] = [1 for x in range(len(X.index))]
+    X = X.copy()
+    X.loc[:, 'base'] = 1
 
     features = ['base', 'sepal length', 'sepal width', 'petal length', 'petal width']
 
-    X_train, X_test, Y_train, Y_test = train_test_split(X, y, test_size=0.2, random_state = 0 )
+    X_train, X_test, Y_train, Y_test = train_test_split(X, y, test_size=0.2)
     
-
+    # Perform logistic regression to obtain weights
     weights = logistic_regression(X_train, Y_train, features)
 
     X_test_normalized = normalize(X_test)
-
     Y_test_pred = sigmoid(X_test_normalized, weights, features)
-
     Y_test_pred = [1 if p >= 0.5 else 0 for p in Y_test_pred]
 
-    # plt.clf()
-    # plt.scatter(X_test, Y_test)
-    # plt.scatter(X_test, Y_test_pred, c="red")
-    # plt.show()
+    plot_confusion_matrix(Y_test_pred, Y_test, label_1, label_2)
 
     # The accuracy
     accuracy = get_accuracy(Y_test_pred, Y_test)
-    # accuracy = 0
-    # for i in range(len(Y_test_pred)):
-    #     if Y_test_pred[i] == Y_test.iloc[i]:
-    #         accuracy += 1
-    print(f"Accuracy = {accuracy}")
+    print(f"Test Accuracy = {accuracy}")
 
 
-
+# Logistic Regression Function
+    # Returns optimized weights
 def logistic_regression(X :pd.DataFrame, y :pd.DataFrame, features :[]) -> []:
     # features = ['base', 'sepal length', 'sepal width', 'petal length', 'petal width']
 
@@ -61,7 +57,7 @@ def logistic_regression(X :pd.DataFrame, y :pd.DataFrame, features :[]) -> []:
     # weights = [0 for x in range(len(features))]
 
     learning_rate = 0.001
-    epochs = 200
+    epochs = 100
 
     errors = []
     accuracies = []
@@ -146,6 +142,8 @@ def plot_error(errors :[], epochs :int) -> None:
     plt.xlabel('Epochs')
     plt.ylabel('Mean Squared Error')
     plt.title('Mean Squared Error per Epoch')
+    # plt.savefig('assignment3/plots/training_error.png')
+    plt.savefig(os.path.join('assignment3/plots', "training_error.png"))
     plt.show()
 
 def plot_accuracy(accuracies :[], epochs :int) -> None:
@@ -154,8 +152,17 @@ def plot_accuracy(accuracies :[], epochs :int) -> None:
     plt.xlabel('Epochs')
     plt.ylabel('Accuracy')
     plt.title('Accuracy per Epoch')
+    # plt.savefig('assignment3/plots/training_accuracy.png')
+    plt.savefig(os.path.join('assignment3/plots', "training_accuracy.png"))
     plt.show()
 
+def plot_confusion_matrix(y_pred :np.array, y :pd.DataFrame, label_1 :str, label_2 :str) -> None:
+    confusion_matrix = metrics.confusion_matrix(y, y_pred)
+    cm_display = metrics.ConfusionMatrixDisplay(confusion_matrix=confusion_matrix, display_labels= [label_1, label_2])
+    cm_display.plot()
+    # plt.savefig('assignment3/plots/test_confusion_matrix.png')
+    plt.savefig(os.path.join('assignment3/plots', "test_confusion_matrix.png"))
+    plt.show()
 
 if __name__ == "__main__":
     main()
