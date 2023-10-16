@@ -8,34 +8,33 @@ import numpy as np
 import random
 import matplotlib.pyplot as plt
 from sklearn import metrics
+  
+# Reference
+    # https://towardsdatascience.com/polynomial-regression-gradient-descent-from-scratch-279db2936fe9
 
 def main():
-    # fetch dataset 
-    iris = fetch_ucirepo(id=53) 
-    
-    # Grab only Setosa and Versicolour
-    X = iris.data.features[:100]
-    y = iris.data.targets [:100]
-    y = y['class'].replace({'Iris-setosa': 0, 'Iris-versicolor': 1})
-    label_1, label_2 = 'Setosa', 'Versicolor'
-
-    # Grab Versicolor and Virginica
-    # X = iris.data.features[-100:]
-    # y = iris.data.targets [-100:]
-    # y = y['class'].replace({'Iris-versicolor': 0, 'Iris-virginica': 1})
-    # label_1, label_2 = 'Versicolor', 'Virginica'
+    # Height
+    X = pd.DataFrame({"X1": [1.47, 1.5, 1.52, 1.55, 1.57, 1.60, 1.63, 1.65, 1.68, 1.7, 1.73, 1.75, 1.78, 1.8, 1.83]})
+    # Weight
+    Y = pd.DataFrame({"weight": [52.21, 53.12, 54.48, 55.84, 57.2, 58.57, 59.93, 61.29, 63.11, 64.47, 66.28, 68.1, 69.92, 72.19, 74.46]})
 
     X = X.copy()
     X.loc[:, 'base'] = 1
+    X.loc[:, 'X2'] = X["X1"]**2
 
-    features = ['base', 'sepal length', 'sepal width', 'petal length', 'petal width']
+    features = ['base', 'X1', 'X2']
 
-    X_train, X_test, Y_train, Y_test = train_test_split(X, y, test_size=0.2)
-    
+    X = X[features]
+
+    plt.scatter((X['X1'] + X['X2']), Y['weight'])
+    plt.show()
+
+    #y = b0 + b1 * x + b2 * X^2 + noise
+
     # Perform logistic regression to obtain weights
-    weights = logistic_regression(X_train, Y_train, features)
+    weights = polynomial_regression(X, Y, features)
 
-    X_test_normalized = normalize(X_test)
+    X_test_normalized = normalize(X)
     Y_test_pred = sigmoid(X_test_normalized, weights, features)
     Y_test_pred = [1 if p >= 0.5 else 0 for p in Y_test_pred]
 
@@ -46,11 +45,8 @@ def main():
     print(f"Test Accuracy = {accuracy}")
 
 
-# Logistic Regression Function
-    # Returns optimized weights
-def logistic_regression(X :pd.DataFrame, y :pd.DataFrame, features :[]) -> []:
-    # features = ['base', 'sepal length', 'sepal width', 'petal length', 'petal width']
-
+# Polynomial Regression Function
+def polynomial_regression(X :pd.DataFrame, Y :pd.DataFrame, features :[]) -> []:
     # Initialize bias randomly
     weights = [random.uniform(0.0, 1.0) for x in range(len(features))]
     # weights = [0 for x in range(len(features))]
@@ -84,6 +80,12 @@ def logistic_regression(X :pd.DataFrame, y :pd.DataFrame, features :[]) -> []:
     return weights
 
 # Helper Functions
+def normalize(X :pd.DataFrame) -> pd.DataFrame:
+         
+        X[:, 1:] = ( X[:, 1:] - np.mean( X[:, 1:], axis = 0 ) ) / np.std( X[:, 1:], axis = 0 )
+         
+        return X
+
 def sigmoid(X :pd.DataFrame, weights :[], features :[]) -> np.array:
 
     # z = sum([weights[i] * X[feature] for i, feature in enumerate(features)])
@@ -116,7 +118,7 @@ def get_accuracy(y_pred :np.array, y:pd.DataFrame) -> float:
     return accuracy
     # print(f"Accuracy = {accuracy / len(y_pred)}")
 
-def get_derivatives(X :pd.DataFrame, y :pd.DataFrame, y_pred: np.array, features :[]) -> []:
+def get_derivatives(X :pd.DataFrame, y :pd.DataFrame, features :[]) -> []:
         derivatives = []
         for i, feature in enumerate(features):
             derivative = -2 * sum( X[feature] * (y - y_pred) * y_pred * (1 - y_pred))
