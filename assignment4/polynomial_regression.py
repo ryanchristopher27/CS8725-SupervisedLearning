@@ -23,28 +23,20 @@ def main():
     X.loc[:, 'X2'] = X["X1"]**2
 
     features = ['base', 'X1', 'X2']
-
     X = X[features]
     
-    noise = 0.1
-
-    #y = b0 + b1 * x + b2 * X^2 + noise
+    noise = 1
 
     # Perform polynomial regression
     # weights = polynomial_regression_matrix(X, Y, features)
     weights = polynomial_regression_iterative(X, Y, features, noise)
 
-    # X_test_normalized = normalize(X)
-    Y_test_pred = evaluate_all_with_noise(weights, X, noise)
+    Y_pred = evaluate_all_with_noise(weights, X, noise)
 
-    # plt.figure(figsize=(10,5))
-    plt.plot(X['X1'], Y_test_pred, color = 'red', label = 'Predictions')
-    plt.scatter(X['X1'], Y['weight'], color = 'blue', label = 'Original')
-    plt.show()
+    # Plot results
+    plot_polynomial_regression_line(X, Y, Y_pred)
+    plot_polynomial_regression_scatter(X, Y, Y_pred)
 
-    # The accuracy
-    # accuracy = get_accuracy(Y_test_pred, Y_test)
-    # print(f"Test Accuracy = {accuracy}")
 
 def polynomial_regression_matrix(A :pd.DataFrame, Y :pd.DataFrame, features :[]) -> []:
     weights = [random.uniform(0.0, 1.0) for x in range(len(features))]
@@ -66,22 +58,22 @@ def polynomial_regression_iterative(X :pd.DataFrame, Y :pd.DataFrame, features :
     # weights = [0 for x in range(len(features))]
 
     learning_rate = 0.001
-    epochs = 1000
+    epochs = 200
     noise_parameter = noise
 
     errors = []
-    accuracies = []
 
     # Loop over all epochs
     for epoch in range(epochs):
         y_prediction = evaluate_all_with_noise(weights, X, noise_parameter)
 
+        errors.append(get_error(y_prediction, Y))
+
         derivatives = get_derivatives(X, Y, y_prediction, features)
 
         weights = update_weights(weights, derivatives, learning_rate)
 
-    # plot_error(errors, epochs)
-    # plot_accuracy(accuracies, epochs)
+    plot_error(errors, epochs)
 
     return weights
 
@@ -97,6 +89,7 @@ def evaluate_with_noise(weights :[], x :float, noise_size :float) -> float:
 
     return y
 
+
 def evaluate_all_with_noise(weights :[], X :pd.DataFrame, noise_size :float) -> []:
     b0 = weights[0]
     b1 = weights[1]
@@ -109,30 +102,21 @@ def evaluate_all_with_noise(weights :[], X :pd.DataFrame, noise_size :float) -> 
     return y
 
 
-
 def normalize(X :pd.DataFrame) -> pd.DataFrame:
          
         X[:, 1:] = ( X[:, 1:] - np.mean( X[:, 1:], axis = 0 ) ) / np.std( X[:, 1:], axis = 0 )
          
         return X
 
+
 def get_error(y_pred :np.array, y :pd.DataFrame) -> float:
-    errors = y_pred - y
+    errors = y_pred - y['weight']
     squared_errors = errors ** 2
 
     mean_squared_error = sum(squared_errors) / len(errors)
 
     return mean_squared_error
 
-def get_accuracy(y_pred :np.array, y:pd.DataFrame) -> float:
-    correct_predictions = 0
-    for i in range(len(y_pred)):
-        if y_pred[i] == y.iloc[i]:
-            correct_predictions += 1
-
-    accuracy = correct_predictions / len(y_pred)
-    return accuracy
-    # print(f"Accuracy = {accuracy / len(y_pred)}")
 
 def get_derivatives(X :pd.DataFrame, y :pd.DataFrame, y_pred :pd.DataFrame, features :[]) -> []:
         derivatives = []
@@ -144,6 +128,7 @@ def get_derivatives(X :pd.DataFrame, y :pd.DataFrame, y_pred :pd.DataFrame, feat
 
         return derivatives
 
+
 def update_weights(weights :[], derivatives :[], learning_rate :float) -> []:
     new_weights = []
     for i in range(len(weights)):
@@ -152,8 +137,6 @@ def update_weights(weights :[], derivatives :[], learning_rate :float) -> []:
 
     return new_weights
 
-def normalize(X :pd.DataFrame) -> pd.DataFrame:
-    return X - X.mean()
 
 def plot_error(errors :[], epochs :int) -> None:
     x = np.arange(1, epochs + 1)
@@ -162,25 +145,27 @@ def plot_error(errors :[], epochs :int) -> None:
     plt.ylabel('Mean Squared Error')
     plt.title('Mean Squared Error per Epoch')
     # plt.savefig('assignment3/plots/training_error.png')
-    plt.savefig(os.path.join('assignment3/plots', "training_error.png"))
+    plt.savefig(os.path.join('assignment4/plots', "training_error.png"))
     plt.show()
 
-def plot_accuracy(accuracies :[], epochs :int) -> None:
-    x = np.arange(1, epochs + 1)
-    plt.plot(x, accuracies)
-    plt.xlabel('Epochs')
-    plt.ylabel('Accuracy')
-    plt.title('Accuracy per Epoch')
-    # plt.savefig('assignment3/plots/training_accuracy.png')
-    plt.savefig(os.path.join('assignment3/plots', "training_accuracy.png"))
+
+def plot_polynomial_regression_scatter(X :pd.DataFrame, y :pd.DataFrame, y_pred :pd.DataFrame) -> None:
+    plt.scatter(X['X1'], y_pred, color = 'red', label = 'Predictions')
+    plt.scatter(X['X1'], y['weight'], color = 'blue', label = 'Original')
+    plt.xlabel('Height')
+    plt.ylabel('Weight')
+    plt.title('Polynomial Regression of Height vs. Weight')
+    plt.savefig(os.path.join('assignment4/plots', "poly_regression_scatter.png"))
     plt.show()
 
-def plot_confusion_matrix(y_pred :np.array, y :pd.DataFrame, label_1 :str, label_2 :str) -> None:
-    confusion_matrix = metrics.confusion_matrix(y, y_pred)
-    cm_display = metrics.ConfusionMatrixDisplay(confusion_matrix=confusion_matrix, display_labels= [label_1, label_2])
-    cm_display.plot()
-    # plt.savefig('assignment3/plots/test_confusion_matrix.png')
-    plt.savefig(os.path.join('assignment3/plots', "test_confusion_matrix.png"))
+
+def plot_polynomial_regression_line(X :pd.DataFrame, y :pd.DataFrame, y_pred :pd.DataFrame) -> None:
+    plt.plot(X['X1'], y_pred, color = 'red', label = 'Predictions')
+    plt.scatter(X['X1'], y['weight'], color = 'blue', label = 'Original')
+    plt.xlabel('Height')
+    plt.ylabel('Weight')
+    plt.title('Polynomial Regression of Height vs. Weight')
+    plt.savefig(os.path.join('assignment4/plots', "poly_regression_line.png"))
     plt.show()
 
 if __name__ == "__main__":
