@@ -25,80 +25,96 @@ def main():
     features = ['base', 'X1', 'X2']
 
     X = X[features]
-
-    plt.scatter((X['X1'] + X['X2']), Y['weight'])
-    plt.show()
+    
+    noise = 0.1
 
     #y = b0 + b1 * x + b2 * X^2 + noise
 
-    # Perform logistic regression to obtain weights
-    weights = polynomial_regression(X, Y, features)
+    # Perform polynomial regression
+    # weights = polynomial_regression_matrix(X, Y, features)
+    weights = polynomial_regression_iterative(X, Y, features, noise)
 
-    X_test_normalized = normalize(X)
-    Y_test_pred = sigmoid(X_test_normalized, weights, features)
-    Y_test_pred = [1 if p >= 0.5 else 0 for p in Y_test_pred]
+    # X_test_normalized = normalize(X)
+    Y_test_pred = evaluate_all_with_noise(weights, X, noise)
 
-    plot_confusion_matrix(Y_test_pred, Y_test, label_1, label_2)
+    # plt.figure(figsize=(10,5))
+    plt.plot(X['X1'], Y_test_pred, color = 'red', label = 'Predictions')
+    plt.scatter(X['X1'], Y['weight'], color = 'blue', label = 'Original')
+    plt.show()
 
     # The accuracy
-    accuracy = get_accuracy(Y_test_pred, Y_test)
-    print(f"Test Accuracy = {accuracy}")
+    # accuracy = get_accuracy(Y_test_pred, Y_test)
+    # print(f"Test Accuracy = {accuracy}")
 
+def polynomial_regression_matrix(A :pd.DataFrame, Y :pd.DataFrame, features :[]) -> []:
+    weights = [random.uniform(0.0, 1.0) for x in range(len(features))]
+
+    A_T = A.T
+
+    B_hat_denominator = np.dot(A_T, A)
+    B_hat_numerator = np.dot(A_T, Y)
+
+    B_hat = np.divide(B_hat_numerator, B_hat_denominator)
+    # B_hat = np.dot((B_hat_numerator**(-1)), B_hat_denominator)
+
+    print(B_hat)
 
 # Polynomial Regression Function
-def polynomial_regression(X :pd.DataFrame, Y :pd.DataFrame, features :[]) -> []:
+def polynomial_regression_iterative(X :pd.DataFrame, Y :pd.DataFrame, features :[], noise :float) -> []:
     # Initialize bias randomly
-    weights = [random.uniform(0.0, 1.0) for x in range(len(features))]
+    weights = [random.uniform(0.0, 10.0) for x in range(len(features))]
     # weights = [0 for x in range(len(features))]
 
     learning_rate = 0.001
-    epochs = 100
+    epochs = 1000
+    noise_parameter = noise
 
     errors = []
     accuracies = []
 
-    X_normalized = normalize(X)
-
     # Loop over all epochs
     for epoch in range(epochs):
-        y_prediction = sigmoid(X_normalized, weights, features)
+        y_prediction = evaluate_all_with_noise(weights, X, noise_parameter)
 
-        error = get_error(y_prediction, y)
-        errors.append(error)
-
-        y_prediction_made = [1 if p >= 0.5 else 0 for p in y_prediction]
-        accuracy = get_accuracy(y_prediction_made, y)
-        accuracies.append(accuracy)
-
-        derivatives = get_derivatives(X_normalized, y, y_prediction, features)
+        derivatives = get_derivatives(X, Y, y_prediction, features)
 
         weights = update_weights(weights, derivatives, learning_rate)
 
-    plot_error(errors, epochs)
-    plot_accuracy(accuracies, epochs)
+    # plot_error(errors, epochs)
+    # plot_accuracy(accuracies, epochs)
 
     return weights
 
 # Helper Functions
+def evaluate_with_noise(weights :[], x :float, noise_size :float) -> float:
+    b0 = weights[0]
+    b1 = weights[1]
+    b2 = weights[2]
+
+    noise = random.random() * noise_size
+
+    y = b0 + (b1 * x) + (b2 * (x**2)) + noise
+
+    return y
+
+def evaluate_all_with_noise(weights :[], X :pd.DataFrame, noise_size :float) -> []:
+    b0 = weights[0]
+    b1 = weights[1]
+    b2 = weights[2]
+
+    noise = [random.random() * noise_size for _ in range(len(X))]
+
+    y = b0 + (b1 * X['X1']) + (b2 * X['X2']) + noise
+
+    return y
+
+
+
 def normalize(X :pd.DataFrame) -> pd.DataFrame:
          
         X[:, 1:] = ( X[:, 1:] - np.mean( X[:, 1:], axis = 0 ) ) / np.std( X[:, 1:], axis = 0 )
          
         return X
-
-def sigmoid(X :pd.DataFrame, weights :[], features :[]) -> np.array:
-
-    # z = sum([weights[i] * X[feature] for i, feature in enumerate(features)])
-
-    predictions = []
-
-    for i, x in X.iterrows():
-        z = sum([weights[i] * x[feature] for i, feature in enumerate(features)])
-        predictions.append(1 / (1 + exp(z)))
-        # predictions.append(1 / (1 + exp(-sum([weights[i] * x[feature] for i, feature in enumerate(features)]))))
-
-    return np.array(predictions)
-    # return np.array([1 / (1 + exp(-sum([weights[i] * x[feature] for i, feature in enumerate(features)]))) for x in X])
 
 def get_error(y_pred :np.array, y :pd.DataFrame) -> float:
     errors = y_pred - y
@@ -118,10 +134,12 @@ def get_accuracy(y_pred :np.array, y:pd.DataFrame) -> float:
     return accuracy
     # print(f"Accuracy = {accuracy / len(y_pred)}")
 
-def get_derivatives(X :pd.DataFrame, y :pd.DataFrame, features :[]) -> []:
+def get_derivatives(X :pd.DataFrame, y :pd.DataFrame, y_pred :pd.DataFrame, features :[]) -> []:
         derivatives = []
+
         for i, feature in enumerate(features):
-            derivative = -2 * sum( X[feature] * (y - y_pred) * y_pred * (1 - y_pred))
+            # derivative = -2 * sum( X[feature] * (y['weight'] - y_pred))
+            derivative = (-2 / len(y)) * sum( X[feature] * (y['weight'] - y_pred))
             derivatives.append(derivative)
 
         return derivatives
@@ -129,7 +147,7 @@ def get_derivatives(X :pd.DataFrame, y :pd.DataFrame, features :[]) -> []:
 def update_weights(weights :[], derivatives :[], learning_rate :float) -> []:
     new_weights = []
     for i in range(len(weights)):
-        w = weights[i] + (learning_rate * derivatives[i])
+        w = weights[i] - (learning_rate * derivatives[i])
         new_weights.append(w)
 
     return new_weights
