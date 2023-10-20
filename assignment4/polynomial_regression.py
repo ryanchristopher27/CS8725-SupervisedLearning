@@ -1,7 +1,6 @@
 from math import exp
 import math
 import os
-from ucimlrepo import fetch_ucirepo 
 import pandas as pd
 from sklearn.model_selection import train_test_split
 import numpy as np
@@ -25,13 +24,26 @@ def main():
     features = ['base', 'X1', 'X2']
     X = X[features]
     
-    noise = 1
+    noise = 0.5
+    epochs = 250
+    learning_rate = 0.001
 
     # Perform polynomial regression
     # weights = polynomial_regression_matrix(X, Y, features)
-    weights = polynomial_regression_iterative(X, Y, features, noise)
+    weights = polynomial_regression_iterative(X, Y, features, noise, epochs, learning_rate)
 
     Y_pred = evaluate_all_with_noise(weights, X, noise)
+
+    polynomial = f"{weights[0]:.2f} + {weights[1]:.2f}x + {weights[2]:.2f}x^2"
+
+    pred_error = get_error(Y_pred, Y)
+    print(f"----------------------\n"
+          f"Noise: {noise}\n"
+          f"Epochs: {epochs}\n"
+          f"Learning Rate: {learning_rate}\n"
+          f"Polynomial: {polynomial}\n"
+          f"Prediction Error (MSE): {pred_error:.6f}\n"
+          f"----------------------\n")
 
     # Plot results
     plot_polynomial_regression_line(X, Y, Y_pred)
@@ -52,13 +64,13 @@ def polynomial_regression_matrix(A :pd.DataFrame, Y :pd.DataFrame, features :[])
     print(B_hat)
 
 # Polynomial Regression Function
-def polynomial_regression_iterative(X :pd.DataFrame, Y :pd.DataFrame, features :[], noise :float) -> []:
+def polynomial_regression_iterative(X :pd.DataFrame, Y :pd.DataFrame, features :[], noise :float, epochs :int, learning_rate :float) -> []:
     # Initialize bias randomly
     weights = [random.uniform(0.0, 10.0) for x in range(len(features))]
     # weights = [0 for x in range(len(features))]
 
-    learning_rate = 0.001
-    epochs = 200
+    # learning_rate = 0.001
+    # epochs = 200
     noise_parameter = noise
 
     errors = []
@@ -144,8 +156,8 @@ def plot_error(errors :[], epochs :int) -> None:
     plt.xlabel('Epochs')
     plt.ylabel('Mean Squared Error')
     plt.title('Mean Squared Error per Epoch')
-    # plt.savefig('assignment3/plots/training_error.png')
-    plt.savefig(os.path.join('assignment4/plots', "training_error.png"))
+    # plt.savefig(os.path.join('assignment4', 'plots', "training_error.png"))
+    plt.savefig(os.path.join('plots', "training_error.png"))
     plt.show()
 
 
@@ -155,7 +167,8 @@ def plot_polynomial_regression_scatter(X :pd.DataFrame, y :pd.DataFrame, y_pred 
     plt.xlabel('Height')
     plt.ylabel('Weight')
     plt.title('Polynomial Regression of Height vs. Weight')
-    plt.savefig(os.path.join('assignment4/plots', "poly_regression_scatter.png"))
+    # plt.savefig(os.path.join('assignment4/plots', "poly_regression_scatter.png"))
+    plt.savefig(os.path.join('plots', "poly_regression_scatter.png"))
     plt.show()
 
 
@@ -165,7 +178,8 @@ def plot_polynomial_regression_line(X :pd.DataFrame, y :pd.DataFrame, y_pred :pd
     plt.xlabel('Height')
     plt.ylabel('Weight')
     plt.title('Polynomial Regression of Height vs. Weight')
-    plt.savefig(os.path.join('assignment4/plots', "poly_regression_line.png"))
+    # plt.savefig(os.path.join('assignment4/plots', "poly_regression_line.png"))
+    plt.savefig(os.path.join('plots', "poly_regression_line.png"))
     plt.show()
 
 if __name__ == "__main__":
